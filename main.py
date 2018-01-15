@@ -1,4 +1,4 @@
-import sys, urllib.request, time, random
+import sys, urllib.request, time, random, json, collections, datetime
 from matplotlib.finance import date2num
 from PyQt5.QtWidgets import (QWidget, QFrame, QPushButton, QApplication, QVBoxLayout, QHBoxLayout, QMessageBox)
 from PyQt5.QtChart import (QCandlestickSeries, QCandlestickSet, QChart, QChartView)
@@ -12,9 +12,35 @@ class MainClass(QWidget):
         self.initUI()
     def getStockData(self):
         self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=JBH&interval=1min&apikey=NOC1N35PNDQOFF1A')
-        self.msgDialog = QMessageBox()
-        self.msgDialog.setText("Downloaded it!")
-        self.msgDialog.exec_()
+        self.output = self.saucePage.read()
+        self.webContent = self.output.decode('utf-8') # Convert from bytes to string
+
+
+        self.writePage = open('stock.json', 'w') # Write webContent to a html file because otherwise i can't use readlines()
+        self.writePage.write(self.webContent) # It's very efficient code trust me
+        self.writePage.close()
+
+        self.sauce = json.load(open('stock.json'))
+
+        # print(sauce["Monthly Time Series"]["2018-01-14 20:23:00"]["1. open"])
+        self.openStocks = {}
+        for date in self.sauce["Monthly Time Series"]:
+            self.openStocks[date] = self.sauce["Monthly Time Series"][date]["1. open"]
+
+        self.ordered = collections.OrderedDict(sorted(self.openStocks.items()))
+        for k, v in self.ordered.items():
+            dateString = k
+            dt = datetime.datetime(int(dateString[:4]), int(dateString[5:7]), int(dateString[8:10]), int(dateString[11:13]), int(dateString[14:16]), int(dateString[17:]))
+            
+            self.newSet = QCandlestickSet((time.mktime(dt.timetuple()) * 1000))
+            self.newSet.setOpen(float(v))
+            self.newSet.setHigh(float(self.sauce["Monthly Time Series"][k]["2. high"]))
+            self.newSet.setLow(float(self.sauce["Monthly Time Series"][k]["3. low"]))
+            self.newSet.setClose(float(self.sauce["Monthly Time Series"][k]["4. close"]))
+            self.newSeries.append(self.newSet)
+        # self.msgDialog = QMessageBox()
+        # self.msgDialog.setText("Downloaded it!")
+        # self.msgDialog.exec_()
     def initUI(self):
         self.mainLayout = QVBoxLayout()
         self.stockFrame = QFrame()
@@ -27,14 +53,14 @@ class MainClass(QWidget):
         self.newSeries = QCandlestickSeries()
         self.newSeries.setName("Test Chart")
 
-        for i in range(1000):
+        # for i in range(1000):
 
-            self.newSet = QCandlestickSet(time.time() * 1000 + (random.randint(-5, 5) * 60000))
-            self.newSet.setOpen(random.randint(1, 10))
-            self.newSet.setHigh(random.randint(1, 10))
-            self.newSet.setLow(random.randint(1, 10))
-            self.newSet.setClose(random.randint(1, 10))
-            self.newSeries.append(self.newSet)
+        #     self.newSet = QCandlestickSet(time.time() * 1000 + (random.randint(-5, 5) * 60000))
+        #     self.newSet.setOpen(random.randint(1, 10))
+        #     self.newSet.setHigh(random.randint(1, 10))
+        #     self.newSet.setLow(random.randint(1, 10))
+        #     self.newSet.setClose(random.randint(1, 10))
+        #     self.newSeries.append(self.newSet)
 
         # self.newSet2 = QCandlestickSet()
         # self.newSet2.setOpen(1.00)
@@ -42,6 +68,43 @@ class MainClass(QWidget):
         # self.newSet2.setLow(0.50)
         # self.newSet2.setClose(5.00)
         # self.newSeries.append(self.newSet2)
+
+
+        self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=SGX:Z74&apikey=NOC1N35PNDQOFF1A')
+        
+        self.output = self.saucePage.read()
+        self.webContent = self.output.decode('utf-8') # Convert from bytes to string
+
+
+        self.writePage = open('stock.json', 'w') # Write webContent to a html file because otherwise i can't use readlines()
+        self.writePage.write(self.webContent) # It's very efficient code trust me
+        self.writePage.close()
+
+        self.sauce = json.load(open('stock.json'))
+
+        # print(sauce["Monthly Time Series"]["2018-01-14 20:23:00"]["1. open"])
+        self.openStocks = {}
+        for date in self.sauce["Monthly Time Series"]:
+            self.openStocks[date] = self.sauce["Monthly Time Series"][date]["1. open"]
+
+        self.ordered = collections.OrderedDict(sorted(self.openStocks.items()))
+        count = 0
+        for k, v in self.ordered.items():
+            dateString = k
+            dt = datetime.datetime(int(dateString[:4]), int(dateString[5:7]), int(dateString[8:10]))
+            
+            self.newSet = QCandlestickSet((time.mktime(dt.timetuple()) * 1000))
+            self.newSet.setOpen(float(v))
+            self.newSet.setHigh(float(self.sauce["Monthly Time Series"][k]["2. high"]))
+            self.newSet.setLow(float(self.sauce["Monthly Time Series"][k]["3. low"]))
+            self.newSet.setClose(float(self.sauce["Monthly Time Series"][k]["4. close"]))
+            self.newSeries.append(self.newSet)
+            count = count + 1
+            # if count > 8:
+            #     break
+
+
+
 
         self.newChart = QChart()
         self.newChart.addSeries(self.newSeries)
