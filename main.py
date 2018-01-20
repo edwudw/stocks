@@ -1,6 +1,5 @@
 import sys, urllib.request, time, random, json, collections, datetime
-from matplotlib.finance import date2num
-from PyQt5.QtWidgets import (QWidget, QFrame, QPushButton, QApplication, QVBoxLayout, QHBoxLayout, QMessageBox)
+from PyQt5.QtWidgets import (QWidget, QFrame, QPushButton, QApplication, QVBoxLayout, QHBoxLayout, QMessageBox, QLineEdit, QLabel)
 from PyQt5.QtChart import (QCandlestickSeries, QCandlestickSet, QChart, QChartView)
 from PyQt5.QtCore import QFile, QDateTime
 # from PyQt5 import QtGui, QtWidgets, QtCore, Qt
@@ -11,7 +10,14 @@ class MainClass(QWidget):
         super().__init__()    
         self.initUI()
     def getStockData(self):
-        self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=JBH&interval=1min&apikey=NOC1N35PNDQOFF1A')
+        self.close()
+        print("HI")
+
+        self.mainLayout.removeWidget(self.newChartView)
+        self.newSeries = QCandlestickSeries()
+        self.newSeries.setName("Test Chart 2")
+
+        self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=' + self.stockRequestBox.text() + '&interval=1min&apikey=NOC1N35PNDQOFF1A')
         self.output = self.saucePage.read()
         self.webContent = self.output.decode('utf-8') # Convert from bytes to string
 
@@ -30,7 +36,7 @@ class MainClass(QWidget):
         self.ordered = collections.OrderedDict(sorted(self.openStocks.items()))
         for k, v in self.ordered.items():
             dateString = k
-            dt = datetime.datetime(int(dateString[:4]), int(dateString[5:7]), int(dateString[8:10]), int(dateString[11:13]), int(dateString[14:16]), int(dateString[17:]))
+            dt = datetime.datetime(int(dateString[:4]), int(dateString[5:7]), int(dateString[8:10]))
             
             self.newSet = QCandlestickSet((time.mktime(dt.timetuple()) * 1000))
             self.newSet.setOpen(float(v))
@@ -38,9 +44,14 @@ class MainClass(QWidget):
             self.newSet.setLow(float(self.sauce["Monthly Time Series"][k]["3. low"]))
             self.newSet.setClose(float(self.sauce["Monthly Time Series"][k]["4. close"]))
             self.newSeries.append(self.newSet)
-        # self.msgDialog = QMessageBox()
-        # self.msgDialog.setText("Downloaded it!")
-        # self.msgDialog.exec_()
+        self.newChart = QChart()
+        self.newChart.addSeries(self.newSeries)
+        self.newChart.setTitle("Test Actual Chart")
+        self.newChart.createDefaultAxes()
+        self.newChartView = QChartView(self.newChart)
+        self.mainLayout.addWidget(self.newChartView)
+        self.show()
+
     def initUI(self):
         self.mainLayout = QVBoxLayout()
         self.stockFrame = QFrame()
@@ -48,6 +59,14 @@ class MainClass(QWidget):
         self.mainButton = QPushButton("Push Me!")
         self.mainButton.clicked.connect(self.getStockData)
         self.mainLayout.addWidget(self.mainButton)
+
+        self.stockRequestLayout = QHBoxLayout()
+        self.stockRequestedLabel = QLabel("Stock: ")
+        self.stockRequestLayout.addWidget(self.stockRequestedLabel)
+        self.stockRequestBox = QLineEdit()
+        self.stockRequestLayout.addWidget(self.stockRequestBox)
+
+        self.mainLayout.addLayout(self.stockRequestLayout)
         self.setLayout(self.mainLayout)
 
         self.newSeries = QCandlestickSeries()
@@ -70,7 +89,7 @@ class MainClass(QWidget):
         # self.newSeries.append(self.newSet2)
 
 
-        self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=SGX:Z74&apikey=NOC1N35PNDQOFF1A')
+        self.saucePage = urllib.request.urlopen('https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=BHP&apikey=NOC1N35PNDQOFF1A')
         
         self.output = self.saucePage.read()
         self.webContent = self.output.decode('utf-8') # Convert from bytes to string
@@ -102,7 +121,6 @@ class MainClass(QWidget):
             count = count + 1
             # if count > 8:
             #     break
-
 
 
 
